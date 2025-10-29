@@ -1,0 +1,5 @@
+{
+  "name": "Gestor de Escalas",
+  "description": "Uma aplicação para funcionários marcarem sua disponibilidade de trabalho. Gestores podem visualizar as datas submetidas para organizar as escalas.",
+  "requestFramePermissions": []
+}
