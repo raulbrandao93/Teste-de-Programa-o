@@ -4,7 +4,7 @@ import Calendar from './Calendar';
 import { ContractType, Position, type Submission } from '../types';
 
 interface AvailabilityFormProps {
-  onSubmit: (submission: Omit<Submission, 'id'>) => void;
+  onSubmit: (submission: Omit<Submission, 'id'>) => Promise<void>;
 }
 
 const AvailabilityForm: React.FC<AvailabilityFormProps> = ({ onSubmit }) => {
@@ -14,6 +14,7 @@ const AvailabilityForm: React.FC<AvailabilityFormProps> = ({ onSubmit }) => {
   const [position, setPosition] = useState<Position>(Position.Monitor);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDates(prevDates => {
@@ -26,7 +27,7 @@ const AvailabilityForm: React.FC<AvailabilityFormProps> = ({ onSubmit }) => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName || !lastName) {
       setError('Nome e sobrenome são obrigatórios.');
@@ -38,14 +39,21 @@ const AvailabilityForm: React.FC<AvailabilityFormProps> = ({ onSubmit }) => {
     }
 
     setError(null);
-    onSubmit({ firstName, lastName, contract, position, dates: selectedDates });
-    
-    // Reset form
-    setFirstName('');
-    setLastName('');
-    setContract(ContractType.Intermitente);
-    setPosition(Position.Monitor);
-    setSelectedDates([]);
+    setIsSubmitting(true);
+    try {
+      await onSubmit({ firstName, lastName, contract, position, dates: selectedDates });
+      // Reset form
+      setFirstName('');
+      setLastName('');
+      setContract(ContractType.Intermitente);
+      setPosition(Position.Monitor);
+      setSelectedDates([]);
+    } catch (err) {
+      setError("Falha ao salvar. Tente novamente.");
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   const InputField: React.FC<{id: string, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void}> = ({id, label, value, onChange}) => (
@@ -111,9 +119,10 @@ const AvailabilityForm: React.FC<AvailabilityFormProps> = ({ onSubmit }) => {
         <div className="pt-4">
           <button
             type="submit"
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+            disabled={isSubmitting}
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors disabled:bg-purple-400 disabled:cursor-not-allowed"
           >
-            Salvar Disponibilidade
+            {isSubmitting ? 'Salvando...' : 'Salvar Disponibilidade'}
           </button>
         </div>
       </form>

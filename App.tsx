@@ -3,39 +3,49 @@ import React, { useState, useCallback, useEffect } from 'react';
 import AvailabilityForm from './components/AvailabilityForm';
 import AvailabilityList from './components/AvailabilityList';
 import { type Submission } from './types';
+import { addSubmission as apiAddSubmission, getSubmissions as apiGetSubmissions } from './services/api';
 
 type View = 'form' | 'list';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('form');
-  const [submissions, setSubmissions] = useState<Submission[]>(() => {
-    try {
-      const savedSubmissions = window.localStorage.getItem('submissions');
-      if (savedSubmissions) {
-        const parsed = JSON.parse(savedSubmissions) as Submission[];
-        // Convert date strings back to Date objects
-        return parsed.map(s => ({
-          ...s,
-          dates: s.dates.map(d => new Date(d)),
-        }));
-      }
-    } catch (error) {
-      console.error("Failed to parse submissions from localStorage", error);
-    }
-    return [];
-  });
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem('submissions', JSON.stringify(submissions));
-    } catch (error) {
-      console.error("Failed to save submissions to localStorage", error);
-    }
-  }, [submissions]);
+    const fetchSubmissions = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await apiGetSubmissions();
+        // Convert date strings back to Date objects from the API layer
+        const formattedData = data.map(s => ({
+            ...s,
+            dates: s.dates.map(d => new Date(d)),
+        }));
+        setSubmissions(formattedData);
+      } catch (err) {
+        setError("Não foi possível carregar as disponibilidades. Tente novamente mais tarde.");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSubmissions();
+  }, []);
 
-  const addSubmission = useCallback((submission: Omit<Submission, 'id'>) => {
-    const newSubmission: Submission = { ...submission, id: new Date().toISOString() + Math.random() };
-    setSubmissions(prev => [...prev, newSubmission].sort((a, b) => a.lastName.localeCompare(b.lastName)));
+  const addSubmission = useCallback(async (submission: Omit<Submission, 'id'>) => {
+    const newSubmission = await apiAddSubmission(submission);
+    // Convert date strings back to Date objects from the API response
+    const formattedSubmission = {
+      ...newSubmission,
+      dates: newSubmission.dates.map(d => new Date(d))
+    };
+
+    setSubmissions(prev => 
+      [...prev, formattedSubmission].sort((a, b) => a.lastName.localeCompare(b.lastName))
+    );
     setView('list');
   }, []);
   
@@ -75,15 +85,27 @@ const App: React.FC = () => {
     );
   };
   
+  const renderContent = () => {
+    if (isLoading) {
+      return <div className="text-center py-16">Carregando disponibilidades...</div>;
+    }
+
+    if (error) {
+       return <div className="text-center py-16 text-red-500">{error}</div>;
+    }
+
+    if (view === 'form') {
+      return <AvailabilityForm onSubmit={addSubmission} />;
+    }
+
+    return <AvailabilityList submissions={submissions} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
       <Header />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {view === 'form' ? (
-          <AvailabilityForm onSubmit={addSubmission} />
-        ) : (
-          <AvailabilityList submissions={submissions} />
-        )}
+        {renderContent()}
       </main>
       <footer className="text-center py-4 text-xs text-slate-500 dark:text-slate-400">
         <p>&copy; {new Date().getFullYear()} Gestor de Escalas. Todos os direitos reservados.</p>
