@@ -103,7 +103,7 @@ const App: React.FC = () => {
         {renderContent()}
       </main>
       <footer className="text-center py-4 text-xs text-slate-500 dark:text-slate-400">
-        <p>&copy; {new Date().getFullYear()} Gestor de Escalas. Todos os direitos reservados. V2</p>
+        <p>&copy; {new Date().getFullYear()} Gestor de Escalas. Todos os direitos reservados. V3</p>
       </footer>
     </div>
   );
