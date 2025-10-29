@@ -1,51 +1,65 @@
-
 import { type Submission } from '../types';
 
-const STORAGE_KEY = 'submissions';
+// ===================================================================================
+// NOTA IMPORTANTE PARA O DESENVOLVEDOR:
+// Este arquivo simula um backend usando o localStorage do navegador.
+// Isso faz com que os dados persistam entre as sessões NO MESMO COMPUTADOR.
+// Para um banco de dados real, acessível de qualquer lugar, esta lógica
+// deve ser substituída por chamadas a uma API (como na versão anterior com 'fetch').
+// ===================================================================================
 
-// Simula a latência da rede
-const networkDelay = (ms: number) => new Promise(res => setTimeout(res, ms));
+const LOCAL_STORAGE_KEY = 'availabilitySubmissions';
+
+// Helper para simular a demora de uma chamada de rede
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
- * Busca todas as disponibilidades.
- * Simula uma chamada de API GET.
+ * Busca todas as disponibilidades do localStorage.
  */
 export const getSubmissions = async (): Promise<Submission[]> => {
-  await networkDelay(500); // Simula 0.5s de carregamento
+  console.log("Buscando disponibilidades do armazenamento local...");
+  await sleep(500); // Simula latência de rede
+
   try {
-    const savedSubmissions = window.localStorage.getItem(STORAGE_KEY);
-    if (savedSubmissions) {
-      return JSON.parse(savedSubmissions) as Submission[];
+    const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!storedData) {
+      return [];
     }
-    return [];
+    const submissions = JSON.parse(storedData);
+    // Converte strings de data de volta para objetos Date, pois o JSON não armazena tipos Date.
+    return submissions.map((submission: any) => ({
+      ...submission,
+      dates: submission.dates.map((d: string) => new Date(d)),
+    }));
   } catch (error) {
-    console.error("API Error (getSubmissions): Failed to parse submissions from localStorage", error);
-    // Em uma API real, você poderia retornar um erro mais específico.
-    throw new Error("Failed to fetch data.");
+    console.error("Erro ao buscar dados do localStorage:", error);
+    // Retorna um array vazio se houver um erro de parsing ou outro problema.
+    return [];
   }
 };
 
 /**
- * Adiciona uma nova disponibilidade.
- * Simula uma chamada de API POST.
+ * Adiciona uma nova disponibilidade no localStorage.
  */
 export const addSubmission = async (submission: Omit<Submission, 'id'>): Promise<Submission> => {
-  await networkDelay(800); // Simula 0.8s para salvar
+  console.log("Salvando nova disponibilidade no armazenamento local...");
+  await sleep(700); // Simula latência de rede
 
   try {
-    const currentSubmissions = await getSubmissions();
-    const newSubmission: Submission = { 
-      ...submission, 
-      id: new Date().toISOString() + Math.random().toString(36).substr(2, 9) 
+    // Usamos getSubmissions para garantir que estamos pegando a lista mais atual.
+    const storedSubmissions = await getSubmissions();
+    
+    const newSubmission: Submission = {
+      ...submission,
+      id: new Date().toISOString() + Math.random(), // Cria um ID único para cada novo registro
     };
 
-    const updatedSubmissions = [...currentSubmissions, newSubmission];
-    
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSubmissions));
+    const updatedSubmissions = [...storedSubmissions, newSubmission];
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedSubmissions));
     
     return newSubmission;
   } catch (error) {
-    console.error("API Error (addSubmission): Failed to save submission to localStorage", error);
-    throw new Error("Failed to save data.");
+    console.error("Erro ao salvar dados no localStorage:", error);
+    throw new Error("Não foi possível salvar a disponibilidade localmente.");
   }
 };

@@ -19,14 +19,9 @@ const App: React.FC = () => {
         setIsLoading(true);
         setError(null);
         const data = await apiGetSubmissions();
-        // Convert date strings back to Date objects from the API layer
-        const formattedData = data.map(s => ({
-            ...s,
-            dates: s.dates.map(d => new Date(d)),
-        }));
-        setSubmissions(formattedData);
+        setSubmissions(data); // Data is now pre-formatted by the API service
       } catch (err) {
-        setError("Não foi possível carregar as disponibilidades. Tente novamente mais tarde.");
+        setError(err instanceof Error ? err.message : "Não foi possível carregar as disponibilidades. Tente novamente mais tarde.");
         console.error(err);
       } finally {
         setIsLoading(false);
@@ -37,14 +32,8 @@ const App: React.FC = () => {
 
   const addSubmission = useCallback(async (submission: Omit<Submission, 'id'>) => {
     const newSubmission = await apiAddSubmission(submission);
-    // Convert date strings back to Date objects from the API response
-    const formattedSubmission = {
-      ...newSubmission,
-      dates: newSubmission.dates.map(d => new Date(d))
-    };
-
     setSubmissions(prev => 
-      [...prev, formattedSubmission].sort((a, b) => a.lastName.localeCompare(b.lastName))
+      [...prev, newSubmission].sort((a, b) => a.lastName.localeCompare(b.lastName))
     );
     setView('list');
   }, []);
