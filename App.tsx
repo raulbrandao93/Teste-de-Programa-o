@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import AvailabilityForm from './components/AvailabilityForm';
 import AvailabilityList from './components/AvailabilityList';
@@ -19,7 +18,7 @@ const App: React.FC = () => {
         setIsLoading(true);
         setError(null);
         const data = await apiGetSubmissions();
-        setSubmissions(data); // Data is now pre-formatted by the API service
+        setSubmissions(data.sort((a, b) => a.lastName.localeCompare(b.lastName)));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Não foi possível carregar as disponibilidades. Tente novamente mais tarde.");
         console.error(err);
@@ -31,11 +30,18 @@ const App: React.FC = () => {
   }, []);
 
   const addSubmission = useCallback(async (submission: Omit<Submission, 'id'>) => {
-    const newSubmission = await apiAddSubmission(submission);
-    setSubmissions(prev => 
-      [...prev, newSubmission].sort((a, b) => a.lastName.localeCompare(b.lastName))
-    );
-    setView('list');
+    try {
+      const newSubmission = await apiAddSubmission(submission);
+      setSubmissions(prev => 
+        [...prev, newSubmission].sort((a, b) => a.lastName.localeCompare(b.lastName))
+      );
+      setView('list');
+    } catch (err) {
+       setError(err instanceof Error ? err.message : "Não foi possível salvar a disponibilidade. Verifique sua conexão e tente novamente.");
+       console.error(err);
+       // Re-throw to be caught in form component
+       throw err;
+    }
   }, []);
   
   const Header: React.FC = () => (
@@ -79,8 +85,8 @@ const App: React.FC = () => {
       return <div className="text-center py-16">Carregando disponibilidades...</div>;
     }
 
-    if (error) {
-       return <div className="text-center py-16 text-red-500">{error}</div>;
+    if (error && view === 'list') {
+       return <div className="text-center py-16 text-red-500 bg-red-50 dark:bg-red-900/20 p-6 rounded-lg"><strong>Erro:</strong> {error}</div>;
     }
 
     if (view === 'form') {
@@ -97,7 +103,7 @@ const App: React.FC = () => {
         {renderContent()}
       </main>
       <footer className="text-center py-4 text-xs text-slate-500 dark:text-slate-400">
-        <p>&copy; {new Date().getFullYear()} Gestor de Escalas. Todos os direitos reservados.</p>
+        <p>&copy; {new Date().getFullYear()} Gestor de Escalas. Todos os direitos reservados. V2</p>
       </footer>
     </div>
   );
