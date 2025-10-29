@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import AvailabilityForm from './components/AvailabilityForm';
 import AvailabilityList from './components/AvailabilityList';
 import { type Submission } from './types';
@@ -8,7 +8,30 @@ type View = 'form' | 'list';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('form');
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>(() => {
+    try {
+      const savedSubmissions = window.localStorage.getItem('submissions');
+      if (savedSubmissions) {
+        const parsed = JSON.parse(savedSubmissions) as Submission[];
+        // Convert date strings back to Date objects
+        return parsed.map(s => ({
+          ...s,
+          dates: s.dates.map(d => new Date(d)),
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to parse submissions from localStorage", error);
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('submissions', JSON.stringify(submissions));
+    } catch (error) {
+      console.error("Failed to save submissions to localStorage", error);
+    }
+  }, [submissions]);
 
   const addSubmission = useCallback((submission: Omit<Submission, 'id'>) => {
     const newSubmission: Submission = { ...submission, id: new Date().toISOString() + Math.random() };
@@ -41,8 +64,8 @@ const App: React.FC = () => {
   
   const NavButton: React.FC<NavButtonProps> = ({ label, currentView, targetView, setView }) => {
     const isActive = currentView === targetView;
-    const baseClasses = "px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500";
-    const activeClasses = "bg-indigo-600 text-white shadow";
+    const baseClasses = "px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500";
+    const activeClasses = "bg-purple-600 text-white shadow";
     const inactiveClasses = "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700";
 
     return (

@@ -51,11 +51,11 @@ const Calendar: React.FC<CalendarProps> = ({ selectedDates, onDateSelect }) => {
           let dayClasses = baseClasses;
 
           if (isSelected) {
-            dayClasses += ' bg-indigo-600 text-white font-bold hover:bg-indigo-700';
+            dayClasses += ' bg-purple-600 text-white font-bold hover:bg-purple-700';
           } else {
             dayClasses += ' text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600';
             if (isToday) {
-                dayClasses += ' ring-2 ring-indigo-500';
+                dayClasses += ' ring-2 ring-purple-500';
             }
           }
 
